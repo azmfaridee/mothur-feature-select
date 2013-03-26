@@ -6,6 +6,7 @@ if (len(argv) == 4):
 	script, sharedPath, designPath, outputPath = argv
 else:
 	print("ERROR: Too few/many arguments")
+	print("Usage: convert-to-r-csv.py [shared-file] [design-file] [output-csv-file]")
 	exit(-1)
 
 designData = {}
