@@ -15,6 +15,9 @@ def load_dataset(shread_path, design_path, design_int_maps):
     shared.drop(['Group', 'label', 'numOtus'], axis=1, inplace=True)
     for k in design_int_maps.keys():
         design.loc[design[1] == k, 1] = design_int_maps[k]
+    # this is needed to change the datateype to numeric 
+    # as the original data was string/object type in the column
+    design[1] = pd.to_numeric(design[1])
 
     # design.loc[design[1] == 'Before', 1] = 0
     # design.loc[design[1] == 'After1', 1] = 1
@@ -54,9 +57,11 @@ shared, design = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.desig
 shared, design = preprocess_data(shared, design, std_percent, corr_threshold)
 # assign output for each row
 # shared['output'] = design[1]
-X, y = shared.values, np.array(design[1].values, dtype=int)
+X, y = shared, design[1]
 
 # univariate feature selection with chi square test
 from sklearn.feature_selection import SelectPercentile
 from sklearn.feature_selection import chi2
 X_new = pd.DataFrame(SelectPercentile(score_func=chi2, percentile=5).fit_transform(X, y))
+
+
