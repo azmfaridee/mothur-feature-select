@@ -2,6 +2,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.feature_selection import RFECV
+from sklearn.svm import SVC
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
+
+from sklearn.ensemble import RandomForestClassifier
+
 
 def load_dataset(shread_path, design_path, design_int_maps):
     # load dataset
@@ -65,10 +72,6 @@ def select_features_univariate(X, y, percentile):
 def select_features_svm_rfe(X, y, cross_val_folds):
     # recursive feature elimination with SVM
     # http://scikit-learn.org/stable/auto_examples/feature_selection/plot_rfe_with_cross_validation.html
-    from sklearn.feature_selection import RFECV
-    from sklearn.svm import SVC
-    from sklearn.model_selection import StratifiedKFold
-    from sklearn.model_selection import KFold
 
     svc = SVC(kernel='linear')
     cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
@@ -88,12 +91,33 @@ def select_features_svm_rfe(X, y, cross_val_folds):
     plt.show()
 
 
-def select_features_rforest(X, y, numforests):
-    from sklearn.ensemble import RandomForestClassifier
+def select_features_rforest_rfe(X, y, cross_val_folds, numforests):
+    # recursive feature elimination with SVM
+    # http://scikit-learn.org/stable/auto_examples/feature_selection/plot_rfe_with_cross_validation.html
 
+    rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy',
+                                 oob_score=True, verbose=1, class_weight='balanced')
+    cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
+    # cross_validator = KFold(n_splits=cross_val_folds)
+    rfecv = RFECV(estimator=rfc, step=1, cv=cross_validator, scoring='accuracy', verbose=0, n_jobs=-1)
+    rfecv.fit(X, y)
+    print("Optimal number of features : %d" % rfecv.n_features_)
+    ranking_svm_rfe = pd.Series(rfecv.ranking_, index=X.keys())
+    ranking_svm_rfe.sort_values(inplace=True)
+    print('Feature ranking with RandomForest-RFE\n:{}'.format(ranking_svm_rfe))
+
+    # Plot number of features VS. cross-validation scores
+    plt.figure()
+    plt.xlabel("Number of features selected")
+    plt.ylabel("Cross validation score (nb of correct classifications)")
+    plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+    plt.show()
+
+
+def select_features_rforest(X, y, numforests):
     # more experiment with radom forests
-    rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy', \
-        oob_score=True, n_jobs=-1, verbose=1, class_weight='balanced')
+    rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy',
+                                 oob_score=True, n_jobs=-1, verbose=1, class_weight='balanced')
     rfc.fit(X, y)
     ranking_rforest = pd.Series(rfc.feature_importances_, index=X.keys())
     ranking_rforest.sort_values(inplace=True, ascending=False)
@@ -104,11 +128,13 @@ if __name__ == '__main__':
     # parameters
     std_percent = 0.01  # should be 0.01 normally
     corr_threshold = 0.8
-    shared, design = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design', \
+    shared, design = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design',
                                   {'Before': 0, 'After1': 1, 'After2': 2, 'After3': 3})
     shared, design = preprocess_data(shared, design, std_percent, corr_threshold)
     X, y = shared, design[1]
 
-    select_features_univariate(X, y, percentile=10)
-    select_features_svm_rfe(X, y, cross_val_folds=5)
-    select_features_rforest(X, y, numforests=1000)
+    # select_features_univariate(X, y, percentile=10)
+    # select_features_svm_rfe(X, y, cross_val_folds=5)
+    # select_features_rforest(X, y, numforests=1000)
+    select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
+    
