@@ -10,46 +10,53 @@ from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestClassifier
 
 
-def load_dataset(shread_path, design_path, design_int_maps):
+def load_dataset(shared_path, design_path, design_int_maps):
     # load dataset
-    shared = pd.read_table('WTmiceonly_final.shared')
-    design = pd.read_table('WTmiceonly_final.design', header=None)
+    shared = pd.read_table(shared_path)
+    design = pd.read_table(design_path, header=None)
 
-    shared.drop(['Group', 'label', 'numOtus'], axis=1, inplace=True)
-    for k in design_int_maps.keys():
-        design.loc[design[1] == k, 1] = design_int_maps[k]
-    # this is needed to change the datateype to numeric 
-    # as the original data is string/object type in the column
-    design[1] = pd.to_numeric(design[1])
+    # find the unique labels from the design files 2nd column
+    labels = design[1].unique()
+    # assign interger numbers to each labels and create map
+    maps = dict(zip(labels, list(range(len(labels)))))
+    # map these integer values to the the group names
+    design_mapped = pd.Series(design[1].map(maps).values, index=design[0].values, dtype=int)
+    # map these integer vaues to shared file to create the output column
+    y = shared.iloc[:, 1].map(design_mapped)
+    # remove the first 3 columns to get the value of X
+    X = shared.drop(['Group', 'label', 'numOtus'], axis=1)
+    print('Number of input features: {}'.format(len(X.keys())))
+    return X, y
 
-    print('Number of input features: {}'.format(len(shared.keys())))
-    return shared, design
 
+def preprocess_data(X, y, std_percent, corr_threshold):
+    # std. deviation based pruning
 
-def preprocess_data(shared, design, std_percent, corr_threshold):
-    # dataset is ready for analysis
-    # first remove almost null columns
-    stddevs = shared.std()
+    # calcuate std. dev. for all of the feature columns
+    stddevs = X.std()
+    # the threshold is set as a small percentage of the maximum std. deviation.
+    # this makes the threshold automatically tuneable depending on the highest and lowest variations between
+    # feature columns
     std_threshold = stddevs.max() * std_percent
     filtered = stddevs[stddevs > std_threshold]
-    shared = shared[filtered.keys()]
-    print('Number of input features after standard deviation based pruning: {}'.format(len(shared.keys())))
+    X = X[filtered.keys()]
+    print('Number of input features after standard deviation based pruning: {}'.format(len(X.keys())))
 
-    pearson_corr = shared.corr()
-
+    # person corr. based univariate feature selection
+    pearson_corr = X.corr()
     keys = pearson_corr.keys()
-    dupes = []
+    dupes = []  # if a pair has high correlation, put the second item in the pair in the dupe list
     for i in range(len(keys)):
         for j in range(i + 1, len(keys)):
-            x, y = keys[i], keys[j]
-            if y in dupes: continue
-            # print(x, y, pearsons[x][y])
-            if pearson_corr[x][y] > corr_threshold or pearson_corr[x][y] < -corr_threshold:
-                dupes.append(y)
-    shared = shared.drop(dupes, axis=1)
+            p, q = keys[i], keys[j]
+            if q in dupes: continue
+            # print(p, q, pearsons[p][q])
+            if pearson_corr[p][q] > corr_threshold or pearson_corr[p][q] < -corr_threshold:
+                dupes.append(q)
+    X = X.drop(dupes, axis=1)
     print('Number of input features after pearson\'s correlation check with threshold value {}: {}' \
-          .format(corr_threshold, len(shared.keys())))
-    return shared, design
+          .format(corr_threshold, len(X.keys())))
+    return X, y
 
 
 def select_features_univariate(X, y, percentile):
@@ -66,7 +73,10 @@ def select_features_univariate(X, y, percentile):
     # use the old hash values to find the column names now
     for c in X_new.keys():
         features_selected.append(hashes[hash(tuple(X_new[c].values))])
-    print('Here are the most important features from univariate chi square test: {}'.format(features_selected))
+    print('Here are the top {}% (out of {}) features from univariate chi-square test:\n{}'
+          .format(percentile,
+                  len(X.keys()),
+                  features_selected))
 
 
 def select_features_svm_rfe(X, y, cross_val_folds):
@@ -128,13 +138,11 @@ if __name__ == '__main__':
     # parameters
     std_percent = 0.01  # should be 0.01 normally
     corr_threshold = 0.8
-    shared, design = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design',
-                                  {'Before': 0, 'After1': 1, 'After2': 2, 'After3': 3})
-    shared, design = preprocess_data(shared, design, std_percent, corr_threshold)
-    X, y = shared, design[1]
+    X, y = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design',
+                        {'Before': 0, 'After1': 1, 'After2': 2, 'After3': 3})
+    X, y = preprocess_data(X, y, std_percent, corr_threshold)
 
-    # select_features_univariate(X, y, percentile=10)
+    select_features_univariate(X, y, percentile=10)
     # select_features_svm_rfe(X, y, cross_val_folds=5)
     # select_features_rforest(X, y, numforests=1000)
     # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
-    

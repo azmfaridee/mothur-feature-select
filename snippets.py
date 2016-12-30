@@ -8,3 +8,4 @@ maps = dict(zip(labels, list(range(len(labels)))))
 design_mapped = pd.Series(design[1].map(maps).values, index=design[0].values, dtype=int)
 
 y = shared.iloc[:, 1].map(design_mapped)
+print(y)
