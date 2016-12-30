@@ -133,8 +133,8 @@ if __name__ == '__main__':
     shared, design = preprocess_data(shared, design, std_percent, corr_threshold)
     X, y = shared, design[1]
 
-    select_features_univariate(X, y, percentile=10)
-    select_features_svm_rfe(X, y, cross_val_folds=5)
-    select_features_rforest(X, y, numforests=1000)
-    select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
+    # select_features_univariate(X, y, percentile=10)
+    # select_features_svm_rfe(X, y, cross_val_folds=5)
+    # select_features_rforest(X, y, numforests=1000)
+    # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
     
