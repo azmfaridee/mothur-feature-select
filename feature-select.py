@@ -79,6 +79,7 @@ from sklearn.feature_selection import RFECV
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
+from sklearn.ensemble import RandomForestClassifier
 
 cross_val_folds = 10
 svc = SVC(kernel='linear')
@@ -87,7 +88,9 @@ cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
 rfecv = RFECV(estimator=svc, step=1, cv=cross_validator, scoring='accuracy', verbose=0, n_jobs=-1)
 rfecv.fit(X, y)
 print("Optimal number of features : %d" % rfecv.n_features_)
-print('Feature ranking: {}'.format(rfecv.ranking_))
+ranking_svm_rfe = pd.Series(rfecv.ranking_, index=X.keys())
+ranking_svm_rfe.sort_values(inplace=True)
+print('Feature ranking with SVM-RFE\n:{}'.format(ranking_svm_rfe))
 
 # Plot number of features VS. cross-validation scores
 plt.figure()
@@ -95,3 +98,11 @@ plt.xlabel("Number of features selected")
 plt.ylabel("Cross validation score (nb of correct classifications)")
 plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
 plt.show()
+
+# more experiment with radom forests
+rfc = RandomForestClassifier(n_estimators=100, criterion='entropy', n_jobs=-1, verbose=1)
+rfc.fit(X, y)
+ranking_rforest = pd.Series(rfc.feature_importances_, index=X.keys())
+ranking_rforest.sort_values(inplace=True, ascending=False)
+print('Feature ranking with random forest:\n{}'.format(ranking_rforest))
+

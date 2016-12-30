@@ -1,4 +1,4 @@
-mothur-scripts
+mothur-feature-select
 ==============
 
-A collection of helper scripts for mothur development 
+Feature selection scripts and tests for mothur and relevant datasets
