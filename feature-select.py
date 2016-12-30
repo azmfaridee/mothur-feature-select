@@ -64,4 +64,11 @@ from sklearn.feature_selection import SelectPercentile
 from sklearn.feature_selection import chi2
 X_new = pd.DataFrame(SelectPercentile(score_func=chi2, percentile=5).fit_transform(X, y))
 
-
+# calculate the hash value for each of the orignal columns
+hashes = {}
+features_selected = []
+for c in X.keys(): hashes[hash(tuple(X[c].values))] = c
+# use the old hash values to find the column names now
+for c in X_new.keys():
+    features_selected.append(hashes[hash(tuple(X_new[c].values))])
+print('Here are the most important features from univariate chi square test: {}'.format(features_selected))
