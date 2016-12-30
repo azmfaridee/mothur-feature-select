@@ -72,3 +72,26 @@ for c in X.keys(): hashes[hash(tuple(X[c].values))] = c
 for c in X_new.keys():
     features_selected.append(hashes[hash(tuple(X_new[c].values))])
 print('Here are the most important features from univariate chi square test: {}'.format(features_selected))
+
+# recursive feature elimination with SVM
+# http://scikit-learn.org/stable/auto_examples/feature_selection/plot_rfe_with_cross_validation.html
+from sklearn.feature_selection import RFECV
+from sklearn.svm import SVC
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold
+
+cross_val_folds = 10
+svc = SVC(kernel='linear')
+cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
+# cross_validator = KFold(n_splits=cross_val_folds)
+rfecv = RFECV(estimator=svc, step=1, cv=cross_validator, scoring='accuracy', verbose=0, n_jobs=-1)
+rfecv.fit(X, y)
+print("Optimal number of features : %d" % rfecv.n_features_)
+print('Feature ranking: {}'.format(rfecv.ranking_))
+
+# Plot number of features VS. cross-validation scores
+plt.figure()
+plt.xlabel("Number of features selected")
+plt.ylabel("Cross validation score (nb of correct classifications)")
+plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+plt.show()
