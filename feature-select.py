@@ -22,6 +22,9 @@ def load_dataset(shared_path, design_path):
     shared = pd.read_table(shared_path)
     design = pd.read_table(design_path, header=None)
 
+    # TODO: use LabelEncoder instead of custom function
+    # http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.LabelEncoder.html
+
     # find the unique labels from the design files 2nd column
     labels = design[1].unique()
     # assign interger numbers to each labels and create map
@@ -131,6 +134,7 @@ def select_features_rforest_rfe(X, y, cross_val_folds, numforests):
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
     plt.show()
 
+
 def select_features_rforest(X, y, numforests, percentile=10):
     # more experiment with radom forests
     rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy',
@@ -142,19 +146,43 @@ def select_features_rforest(X, y, numforests, percentile=10):
     print('Feature ranking with random forest (top {}%):\n{}'
           .format(percentile, ranking_rforest_top))
 
+
 def test_classifiers(X, y):
     # scale the features first
     X_scaled = preprocessing.scale(X)
     classifiers = {
-        'svmlinear' : SVC(kernel='linear', class_weight='balanced', C=0.025),
-        'randomforest' : RandomForestClassifier(n_estimators=200, criterion='entropy', oob_score=True, class_weight='balanced'),
-        'knn':  KNeighborsClassifier(n_neighbors=3, weights='distance', n_jobs=-1),
+        'svmlinear': SVC(kernel='linear', class_weight='balanced', C=0.025),
+        'randomforest': RandomForestClassifier(n_estimators=200, criterion='entropy', oob_score=True,
+                                               class_weight='balanced'),
+        'knn': KNeighborsClassifier(n_neighbors=3, weights='distance', n_jobs=-1),
         'naivebayes': GaussianNB(),
         'mlp': MLPClassifier(alpha=1)
     }
     for name in classifiers.keys():
         scores = cross_val_score(classifiers[name], X_scaled, y, cv=5, n_jobs=-1)
         print('Mean accuracy with {} classifier: {}'.format(name, scores.mean()))
+
+
+def select_feature_from_model(X, y, max_features):
+    from sklearn.feature_selection import SelectFromModel
+
+    X_scaled = pd.DataFrame(preprocessing.scale(X), columns=X.keys())
+    classifier = SVC(kernel='linear', class_weight='balanced', C=0.025)
+    sfm = SelectFromModel(classifier, threshold=0.05)
+    sfm.fit(X_scaled, y)
+    n_features = sfm.transform(X_scaled).shape[1]
+    while n_features > max_features:  # set the max number of features to select
+        sfm.threshold += 0.05
+        X_transform = sfm.transform(X_scaled)
+        n_features = X_transform.shape[1]
+    X_final = pd.DataFrame(X_transform)
+
+    hashes = {}
+    features_selected = []
+    for c in X_scaled.keys(): hashes[hash(tuple(X_scaled[c].values))] = c
+    for c in X_final.keys():
+        features_selected.append(hashes[hash(tuple(X_final[c].values))])
+    print('Features selection by SelectFromModel: {}'.format(features_selected))
 
 
 # if __name__ == '__main__':
@@ -173,6 +201,7 @@ X, y = preprocess_data(X, y, std_percent, corr_threshold)
 
 # select_features_univariate(X, y)
 # select_features_rforest(X, y, numforests=200)
-select_features_svm_rfe(X, y, cross_val_folds=5)
+# select_features_svm_rfe(X, y, cross_val_folds=5)
 # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
 # test_classifiers(X, y)
+select_feature_from_model(X, y, 10)
