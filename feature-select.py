@@ -9,6 +9,9 @@ from sklearn.model_selection import KFold
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+
 from sklearn.model_selection import cross_val_score
 
 from sklearn import preprocessing
@@ -143,8 +146,10 @@ def test_classifiers(X, y):
     # scale the features first
     X_scaled = preprocessing.scale(X)
     classifiers = {
-        'svm' : SVC(kernel='linear', class_weight='balanced', C=0.025),
-        'randomforest' : RandomForestClassifier(n_estimators=1000, criterion='entropy', oob_score=True, class_weight='balanced'),
+        'svmlinear' : SVC(kernel='linear', class_weight='balanced', C=0.025),
+        'randomforest' : RandomForestClassifier(n_estimators=200, criterion='entropy', oob_score=True, class_weight='balanced'),
+        'knn':  KNeighborsClassifier(n_neighbors=3, weights='distance', n_jobs=-1),
+        'naivebayes': GaussianNB(),
         'mlp': MLPClassifier(alpha=1)
     }
     for name in classifiers.keys():
@@ -167,7 +172,7 @@ X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_fin
 X, y = preprocess_data(X, y, std_percent, corr_threshold)
 
 # select_features_univariate(X, y)
-# select_features_rforest(X, y, numforests=1000)
-# select_features_svm_rfe(X, y, cross_val_folds=5)
+# select_features_rforest(X, y, numforests=200)
+select_features_svm_rfe(X, y, cross_val_folds=5)
 # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
-test_classifiers(X, y)
+# test_classifiers(X, y)
