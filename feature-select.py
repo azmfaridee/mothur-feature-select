@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestClassifier
 
 
-def load_dataset(shared_path, design_path, design_int_maps):
+def load_dataset(shared_path, design_path):
     # load dataset
     shared = pd.read_table(shared_path)
     design = pd.read_table(design_path, header=None)
@@ -59,7 +59,7 @@ def preprocess_data(X, y, std_percent, corr_threshold):
     return X, y
 
 
-def select_features_univariate(X, y, percentile):
+def select_features_univariate(X, y, percentile=10):
     # univariate feature selection with chi square test
     from sklearn.feature_selection import SelectPercentile
     from sklearn.feature_selection import chi2
@@ -124,25 +124,28 @@ def select_features_rforest_rfe(X, y, cross_val_folds, numforests):
     plt.show()
 
 
-def select_features_rforest(X, y, numforests):
+def select_features_rforest(X, y, numforests, percentile=10):
     # more experiment with radom forests
     rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy',
                                  oob_score=True, n_jobs=-1, verbose=1, class_weight='balanced')
     rfc.fit(X, y)
     ranking_rforest = pd.Series(rfc.feature_importances_, index=X.keys())
     ranking_rforest.sort_values(inplace=True, ascending=False)
-    print('Feature ranking with random forest:\n{}'.format(ranking_rforest))
+    ranking_rforest_top = ranking_rforest[:int(len(ranking_rforest) / 100 * percentile)]
+    print('Feature ranking with random forest (top {}%):\n{}'
+          .format(percentile, ranking_rforest_top))
 
 
 if __name__ == '__main__':
     # parameters
     std_percent = 0.01  # should be 0.01 normally
     corr_threshold = 0.8
-    X, y = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design',
-                        {'Before': 0, 'After1': 1, 'After2': 2, 'After3': 3})
+    
+    # X, y = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design')
+    X, y = load_dataset('HumanCRC.final.shared', 'HumanCRC.design')
+    
     X, y = preprocess_data(X, y, std_percent, corr_threshold)
-
-    select_features_univariate(X, y, percentile=10)
+    select_features_univariate(X, y)
+    select_features_rforest(X, y, numforests=1000)
     # select_features_svm_rfe(X, y, cross_val_folds=5)
-    # select_features_rforest(X, y, numforests=1000)
     # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
