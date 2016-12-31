@@ -141,8 +141,11 @@ if __name__ == '__main__':
     std_percent = 0.01  # should be 0.01 normally
     corr_threshold = 0.8
     
-    # X, y = load_dataset('WTmiceonly_final.shared', 'WTmiceonly_final.design')
-    X, y = load_dataset('HumanCRC.final.shared', 'HumanCRC.design')
+    # X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_final.design')
+    # X, y = load_dataset('datasets/WTonly.subsample.0.03.shared', 'datasets/WTonly.time.design')
+    X, y = load_dataset('datasets/HumanCRC.final.subsample.shared', 'datasets/HumanCRC.design')
+    # X, y = load_dataset('datasets/inpatient.final.an.0.03.subsample.avg.shared', 'datasets/inpatient.final.an.0.03.subsample.avg.design')
+    
     
     X, y = preprocess_data(X, y, std_percent, corr_threshold)
     select_features_univariate(X, y)
