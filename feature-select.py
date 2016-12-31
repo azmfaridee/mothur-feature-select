@@ -8,6 +8,9 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
+from sklearn import preprocessing
 
 
 def load_dataset(shared_path, design_path):
@@ -83,11 +86,12 @@ def select_features_svm_rfe(X, y, cross_val_folds):
     # recursive feature elimination with SVM
     # http://scikit-learn.org/stable/auto_examples/feature_selection/plot_rfe_with_cross_validation.html
 
-    svc = SVC(kernel='linear')
+    svc = SVC(kernel='linear', class_weight='balanced')
     cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
     # cross_validator = KFold(n_splits=cross_val_folds)
     rfecv = RFECV(estimator=svc, step=1, cv=cross_validator, scoring='accuracy', verbose=0, n_jobs=-1)
-    rfecv.fit(X, y)
+    X_scaled = preprocessing.scale(X)
+    rfecv.fit(X_scaled, y)
     print("Optimal number of features : %d" % rfecv.n_features_)
     ranking_svm_rfe = pd.Series(rfecv.ranking_, index=X.keys())
     ranking_svm_rfe.sort_values(inplace=True)
@@ -123,7 +127,6 @@ def select_features_rforest_rfe(X, y, cross_val_folds, numforests):
     plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
     plt.show()
 
-
 def select_features_rforest(X, y, numforests, percentile=10):
     # more experiment with radom forests
     rfc = RandomForestClassifier(n_estimators=numforests, criterion='entropy',
@@ -135,20 +138,30 @@ def select_features_rforest(X, y, numforests, percentile=10):
     print('Feature ranking with random forest (top {}%):\n{}'
           .format(percentile, ranking_rforest_top))
 
+def test_classifiers(X, y):
+    X_scaled = preprocessing.scale(X)
+    classifier = SVC(kernel='linear', class_weight='balanced')
+    # classifier = RandomForestClassifier(n_estimators=1000, criterion='entropy', oob_score=True, class_weight='balanced')
+    scores = cross_val_score(classifier, X_scaled, y, cv=5, n_jobs=-1)
+    print('Mean accuracy: {}'.format(scores.mean()))
 
-if __name__ == '__main__':
-    # parameters
-    std_percent = 0.01  # should be 0.01 normally
-    corr_threshold = 0.8
-    
-    # X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_final.design')
-    # X, y = load_dataset('datasets/WTonly.subsample.0.03.shared', 'datasets/WTonly.time.design')
-    X, y = load_dataset('datasets/HumanCRC.final.subsample.shared', 'datasets/HumanCRC.design')
-    # X, y = load_dataset('datasets/inpatient.final.an.0.03.subsample.avg.shared', 'datasets/inpatient.final.an.0.03.subsample.avg.design')
-    
-    
-    X, y = preprocess_data(X, y, std_percent, corr_threshold)
-    select_features_univariate(X, y)
-    select_features_rforest(X, y, numforests=1000)
-    # select_features_svm_rfe(X, y, cross_val_folds=5)
-    # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
+
+# if __name__ == '__main__':
+
+# parameters
+std_percent = 0.01  # should be 0.01 normally
+corr_threshold = 0.8
+
+X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_final.design')
+
+# X, y = load_dataset('datasets/WTonly.subsample.0.03.shared', 'datasets/WTonly.time.design')
+# X, y = load_dataset('datasets/HumanCRC.final.subsample.shared', 'datasets/HumanCRC.design')
+# X, y = load_dataset('datasets/inpatient.final.an.0.03.subsample.avg.shared', 'datasets/inpatient.final.an.0.03.subsample.avg.design')
+
+X, y = preprocess_data(X, y, std_percent, corr_threshold)
+
+select_features_univariate(X, y)
+# select_features_rforest(X, y, numforests=1000)
+select_features_svm_rfe(X, y, cross_val_folds=5)
+# select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
+# test_classifiers(X, y)
