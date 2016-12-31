@@ -8,6 +8,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import KFold
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 
 from sklearn import preprocessing
@@ -86,7 +87,7 @@ def select_features_svm_rfe(X, y, cross_val_folds):
     # recursive feature elimination with SVM
     # http://scikit-learn.org/stable/auto_examples/feature_selection/plot_rfe_with_cross_validation.html
 
-    svc = SVC(kernel='linear', class_weight='balanced')
+    svc = SVC(kernel='linear', class_weight='balanced', C=0.025)
     cross_validator = StratifiedKFold(n_splits=cross_val_folds, shuffle=True)
     # cross_validator = KFold(n_splits=cross_val_folds)
     rfecv = RFECV(estimator=svc, step=1, cv=cross_validator, scoring='accuracy', verbose=0, n_jobs=-1)
@@ -139,11 +140,16 @@ def select_features_rforest(X, y, numforests, percentile=10):
           .format(percentile, ranking_rforest_top))
 
 def test_classifiers(X, y):
+    # scale the features first
     X_scaled = preprocessing.scale(X)
-    classifier = SVC(kernel='linear', class_weight='balanced')
-    # classifier = RandomForestClassifier(n_estimators=1000, criterion='entropy', oob_score=True, class_weight='balanced')
-    scores = cross_val_score(classifier, X_scaled, y, cv=5, n_jobs=-1)
-    print('Mean accuracy: {}'.format(scores.mean()))
+    classifiers = {
+        'svm' : SVC(kernel='linear', class_weight='balanced', C=0.025),
+        'randomforest' : RandomForestClassifier(n_estimators=1000, criterion='entropy', oob_score=True, class_weight='balanced'),
+        'mlp': MLPClassifier(alpha=1)
+    }
+    for name in classifiers.keys():
+        scores = cross_val_score(classifiers[name], X_scaled, y, cv=5, n_jobs=-1)
+        print('Mean accuracy with {} classifier: {}'.format(name, scores.mean()))
 
 
 # if __name__ == '__main__':
@@ -160,8 +166,8 @@ X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_fin
 
 X, y = preprocess_data(X, y, std_percent, corr_threshold)
 
-select_features_univariate(X, y)
+# select_features_univariate(X, y)
 # select_features_rforest(X, y, numforests=1000)
-select_features_svm_rfe(X, y, cross_val_folds=5)
+# select_features_svm_rfe(X, y, cross_val_folds=5)
 # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
-# test_classifiers(X, y)
+test_classifiers(X, y)
