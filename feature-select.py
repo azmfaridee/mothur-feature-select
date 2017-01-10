@@ -191,16 +191,19 @@ def select_feature_from_model(X, y, max_features):
 std_percent = 0.01  # should be 0.01 normally
 corr_threshold = 0.8
 
-X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_final.design')
+# X, y = load_dataset('datasets/WTmiceonly_final.shared', 'datasets/WTmiceonly_final.design')
 
 # X, y = load_dataset('datasets/WTonly.subsample.0.03.shared', 'datasets/WTonly.time.design')
 # X, y = load_dataset('datasets/HumanCRC.final.subsample.shared', 'datasets/HumanCRC.design')
 # X, y = load_dataset('datasets/inpatient.final.an.0.03.subsample.avg.shared', 'datasets/inpatient.final.an.0.03.subsample.avg.design')
 
+# latest dataset from Sarah
+X, y = load_dataset('datasets/stability.an.0.03.subsample.shared', 'datasets/mouse.time.design')
+
 X, y = preprocess_data(X, y, std_percent, corr_threshold)
 
-# select_features_univariate(X, y)
-# select_features_rforest(X, y, numforests=200)
+#select_features_univariate(X, y)
+#select_features_rforest(X, y, numforests=1000)
 # select_features_svm_rfe(X, y, cross_val_folds=5)
 # select_features_rforest_rfe(X, y, cross_val_folds=5, numforests=100)
 test_classifiers(X, y)
